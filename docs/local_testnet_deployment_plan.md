@@ -480,48 +480,64 @@ Sign a normal Ethereum transaction to produce a raw signed ETH transaction.
 
 You can skip this if you are already familiar with. This is a example script sign_ethraw.py:
 
-```python
+```
 import os
 import sys
-from getpass import getpass
-from binascii import hexlify
-from ethereum.utils import privtoaddr, encode_hex, decode_hex, bytes_to_int
-from ethereum import transactions
-from binascii import unhexlify
-import rlp
 import json
+import rlp
+from getpass import getpass
+from binascii import unhexlify
+from ethereum.utils import privtoaddr, encode_hex
+from ethereum.transactions import Transaction
 
-EVM_SENDER_KEY  = os.getenv("EVM_SENDER_KEY", None)
-EVM_CHAINID     = int(os.getenv("EVM_CHAINID", "15555"))
+# Constants
+EVM_SENDER_KEY = os.getenv("EVM_SENDER_KEY")
+EVM_CHAINID = int(os.getenv("EVM_CHAINID", "15555"))
 
-if len(sys.argv) < 6:
-    print("{0} FROM TO AMOUNT INPUT_DATA NONCE".format(sys.argv[0]))
+def print_usage_and_exit():
+    print("Usage: {} FROM TO AMOUNT INPUT_DATA NONCE".format(sys.argv[0]))
     sys.exit(1)
 
-_from = sys.argv[1].lower()
-if _from[:2] == '0x': _from = _from[2:]
+def get_hex_string(value):
+    if value[:2] == '0x':
+        return value[2:]
+    return value
 
-_to     = sys.argv[2].lower()
-if _to[:2] == '0x': _to = _to[2:]
+# Main function
+if __name__ == "__main__":
+    if len(sys.argv) < 6:
+        print_usage_and_exit()
 
-_amount = int(sys.argv[3])
-nonce = int(sys.argv[5])
+    # Extracting arguments
+    _from = get_hex_string(sys.argv[1].lower())
+    _to = get_hex_string(sys.argv[2].lower())
+    _amount = int(sys.argv[3])
+    input_data = unhexlify(sys.argv[4])
+    nonce = int(sys.argv[5])
 
-unsigned_tx = transactions.Transaction(
-    nonce,
-    1000000000,   #1 GWei
-    1000000,      #1m Gas
-    _to,
-    _amount,
-    unhexlify(sys.argv[4])
-)
+    # Creating unsigned transaction
+    unsigned_tx = Transaction(
+        nonce,
+        gasprice=1000000000,  # 1 GWei
+        startgas=1000000,     # 1m Gas
+        to=_to,
+        value=_amount,
+        data=input_data
+    )
 
-if not EVM_SENDER_KEY:
-    EVM_SENDER_KEY = getpass('Enter private key for {0}:'.format(_from))
+    # Prompt for private key if not provided in environment variable
+    if not EVM_SENDER_KEY:
+        EVM_SENDER_KEY = getpass('Enter private key for {}: '.format(_from))
 
-rlptx = rlp.encode(unsigned_tx.sign(EVM_SENDER_KEY, EVM_CHAINID), transactions.Transaction)
+    # Signing the transaction
+    signed_tx = unsigned_tx.sign(EVM_SENDER_KEY, chain_id=EVM_CHAINID)
 
-print("Eth signed raw transaction is {}".format(rlptx.hex()))
+    # Encoding signed transaction in RLP format
+    rlptx = rlp.encode(signed_tx)
+
+    # Printing the signed transaction
+    print("Eth signed raw transaction: {}".format(encode_hex(rlptx)))
+
 ```
 
 Example: sign a ETH transaction of transfering amount "1" (minimal positive amount) from 0x2787b98fc4e731d0456b3941f0b3fe2e01439961 to itself without input data, using nonce 0:
