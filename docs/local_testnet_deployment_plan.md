@@ -99,7 +99,7 @@ chain-state-db-size-mb = 16384
 # checkpoint = 
 
 # The local IP and port to listen for incoming http connections.
-http-server-address = 127.0.0.1:8888
+http-server-address = 127.0.0.1:2888
 
 # Specify the Access-Control-Allow-Origin to be returned on each request.
 # access-control-allow-origin = 
@@ -111,7 +111,7 @@ http-server-address = 127.0.0.1:8888
 access-control-allow-credentials = false
 
 # The actual host:port used to listen for incoming p2p connections.
-p2p-listen-endpoint = 0.0.0.0:9876
+p2p-listen-endpoint = 0.0.0.0:2987
 
 # An externally accessible host:port for identifying this node. Defaults to p2p-listen-endpoint.
 # p2p-server-address = 
@@ -162,7 +162,7 @@ private-key = ["EOS5sUpxhaC5V231cAVxGVH9RXtN9n4KDxZG6ZUwHRgYoEpTBUidU","5JK68f7P
 trace-history = true
 chain-state-history = true
 
-state-history-endpoint = 127.0.0.1:8999
+state-history-endpoint = 127.0.0.1:8080
 
 # Plugin(s) to enable, may be specified multiple times
 plugin = eosio::producer_plugin
@@ -278,7 +278,7 @@ Once you have done everything with the wallet, it is fine to bootstrap the block
 First we need to use curl to schedule protocol feature activation:
 
 ```shell
-curl --data-binary '{"protocol_features_to_activate":["0ec7e080177b2c02b278d5088611686b49d739925a92d9bfcacd7fc6b74053bd"]}' http://127.0.0.1:8888/v1/producer/schedule_protocol_feature_activations
+curl --data-binary '{"protocol_features_to_activate":["0ec7e080177b2c02b278d5088611686b49d739925a92d9bfcacd7fc6b74053bd"]}' http://127.0.0.1:2888/v1/producer/schedule_protocol_feature_activations
 ```
 
 You'll get the "OK" response if succeed:
@@ -408,7 +408,7 @@ Example output:
 
 Notice that the value `0000000000000000000000000000000100000000000000000000000000000000` is in hexadecimal form and must be exactly 64 characters long (256-bit integer value).
 
-### 4. Setup The Transaction Wrapper Service
+### 4. Setup The Transaction Wrapper Service (Transaction Miner)
 
 Setup the transaction wrapper service to wrap EVM transactions into Antelope transactions. This is also required in mainnet for service providers who want to be EVM transaction miners and get miner rewards in EOS.
 
@@ -441,17 +441,16 @@ run the open action on evm contract to open the account balance row:
 Prepare the `.env` file to configure Antelope RPC endpoint, listening port, EVM contract account, sender account and other details:
 
 ```txt
-EOS_RPC="http://127.0.0.1:8888|http://192.168.1.100:8888"
-EOS_KEY="5JURSKS1BrJ1TagNBw1uVSzTQL2m9eHGkjknWeZkjSt33Awtior"
-HOST="127.0.0.1"
-PORT="18888"
-EOS_EVM_ACCOUNT="evmevmevmevm"
-EOS_SENDER="a123"
-EOS_PERMISSION="active"
+PRIVATE_KEY=5HtHFma7KKRFdvTtmCCk6skBGJ2VEPXV2KN92Jcg9TiZdK8bQs5
+MINER_ACCOUNT=minerlionevm
+RPC_ENDPOINTS=http://172.17.0.250:2888
+PORT=3335
+LOCK_GAS_PRICE=true
+MINER_PERMISSION="active"
 EXPIRE_SEC=60
 ```
 
-In the above environment settings, Tx Wrapper will listen to 127.0.0.1:18888, use `5JURSKS1BrJ1TagNBw1uVSzTQL2m9eHGkjknWeZkjSt33Awtior` to wrap and sign the in-coming ETH trasnactions into Antelope transactions (contract=evmevmevmevm, action_name=pushtx, with expire second set to 60 and using permission a123@active), and then push them into the Antelope RPC endpoint http://127.0.0.1:8888. If the endpoint http://127.0.0.1:8888 is unavailable, it will try the next endpoint http://192.168.1.100:8888.
+In the above environment settings, Tx Wrapper will listen to 127.0.0.1:3335, use `5JURSKS1BrJ1TagNBw1uVSzTQL2m9eHGkjknWeZkjSt33Awtior` to wrap and sign the in-coming ETH trasnactions into Antelope transactions (contract=evmevmevmevm, action_name=pushtx, with expire second set to 60 and using permission a123@active), and then push them into the Antelope RPC endpoint http://127.0.0.1:.
 
 #### Start Tx Wrapper Service
 
@@ -466,7 +465,7 @@ node index.js
 Check if Tx Wrapper is running:
 
 ```shell
-curl http://127.0.0.1:18888 -X POST -H "Accept: application/json" -H "Content-Type: application/json" --data '{"method":"eth_gasPrice","params":[],"id":1,"jsonrpc":"2.0"}'
+curl http://127.0.0.1:3335 -X POST -H "Accept: application/json" -H "Content-Type: application/json" --data '{"method":"eth_gasPrice","params":[],"id":1,"jsonrpc":"2.0"}'
 ```
 
 Example output:
@@ -543,7 +542,7 @@ Eth signed raw transaction is f86680843b9aca00830f4240942787b98fc4e731d0456b3941
 For example:
 
 ```shell
-curl http://127.0.0.1:18888 -X POST -H "Accept: application/json" -H "Content-Type: application/json" --data '{"method":"eth_sendRawTransaction","params":["0xf86680843b9aca00830f4240942787b98fc4e731d0456b3941f0b3fe2e0143996101808279aaa00c028e3a5086d2ed6c4fdd8e1612691d6dd715386d35c4764726ad0f9f281fb3a0652f0fbdf0f13b3492ff0e30468efc98bef8774ea15374b64a0a13da24ba8879"],"id":1,"jsonrpc":"2.0"}'
+curl http://127.0.0.1:3335 -X POST -H "Accept: application/json" -H "Content-Type: application/json" --data '{"method":"eth_sendRawTransaction","params":["0xf86680843b9aca00830f4240942787b98fc4e731d0456b3941f0b3fe2e0143996101808279aaa00c028e3a5086d2ed6c4fdd8e1612691d6dd715386d35c4764726ad0f9f281fb3a0652f0fbdf0f13b3492ff0e30468efc98bef8774ea15374b64a0a13da24ba8879"],"id":1,"jsonrpc":"2.0"}'
 ```
 
 Example output:
@@ -669,7 +668,7 @@ f901c401843b9aca00830f42408080b90170608060405234801561001057600080fd5b5061015080
 Push it to Tx Wrapper:
 
 ```shell
-curl http://127.0.0.1:18888 -X POST -H "Accept: application/json" -H "Content-Type: application/json" --data '{"method":"eth_sendRawTransaction","params":["0xf901c401843b9aca00830f42408080b90170608060405234801561001057600080fd5b50610150806100206000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c80632e64cec11461003b5780636057361d14610059575b600080fd5b610043610075565b60405161005091906100d9565b60405180910390f35b610073600480360381019061006e919061009d565b61007e565b005b60008054905090565b8060008190555050565b60008135905061009781610103565b92915050565b6000602082840312156100b3576100b26100fe565b5b60006100c184828501610088565b91505092915050565b6100d3816100f4565b82525050565b60006020820190506100ee60008301846100ca565b92915050565b6000819050919050565b600080fd5b61010c816100f4565b811461011757600080fd5b5056fea26469706673582212209a159a4f3847890f10bfb87871a61eba91c5dbf5ee3cf6398207e292eee22a1664736f6c634300080700338279aaa0b1b54ab370d1f3e820249b64ca1a1edb53779a20cd6fbf29540af17d95546d2ca02ff89e2476a5022da7f39e0b98b895de6f73445c3961b0affd404c17141c537b"],"id":1,"jsonrpc":"2.0"}'
+curl http://127.0.0.1:3335 -X POST -H "Accept: application/json" -H "Content-Type: application/json" --data '{"method":"eth_sendRawTransaction","params":["0xf901c401843b9aca00830f42408080b90170608060405234801561001057600080fd5b50610150806100206000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c80632e64cec11461003b5780636057361d14610059575b600080fd5b610043610075565b60405161005091906100d9565b60405180910390f35b610073600480360381019061006e919061009d565b61007e565b005b60008054905090565b8060008190555050565b60008135905061009781610103565b92915050565b6000602082840312156100b3576100b26100fe565b5b60006100c184828501610088565b91505092915050565b6100d3816100f4565b82525050565b60006020820190506100ee60008301846100ca565b92915050565b6000819050919050565b600080fd5b61010c816100f4565b811461011757600080fd5b5056fea26469706673582212209a159a4f3847890f10bfb87871a61eba91c5dbf5ee3cf6398207e292eee22a1664736f6c634300080700338279aaa0b1b54ab370d1f3e820249b64ca1a1edb53779a20cd6fbf29540af17d95546d2ca02ff89e2476a5022da7f39e0b98b895de6f73445c3961b0affd404c17141c537b"],"id":1,"jsonrpc":"2.0"}'
 ```
 
 Example output:
@@ -757,7 +756,7 @@ In this case `6057361d` is the function first 4 bytes of hash of `store(uint256 
 Once you get the raw trasnaction, then we can push into Tx Wrapper to sign as the Antelope transaction and push to Antelope blockchain:
 
 ```shell
-curl http://127.0.0.1:18888 -X POST -H "Accept: application/json" -H "Content-Type: application/json" --data '{"method":"eth_sendRawTransaction","params":["0xf88a02843b9aca00830f42409451a97d86ae7c83f050056f03ebbe45100104676480a46057361d000000000000000000000000000000000000000000000000000000000000007b8279a9a0a2fc71e4beebd9cd1a3d9a55da213f126641f7ed0bb708a3882fa2b85dd6c30ea0164a5d8a8b9b37950091665194f07b5c4e8f6d1b0d6ef162b0e0a1f9bf10c7a7"],"id":1,"jsonrpc":"2.0"}'
+curl http://127.0.0.1:3335 -X POST -H "Accept: application/json" -H "Content-Type: application/json" --data '{"method":"eth_sendRawTransaction","params":["0xf88a02843b9aca00830f42409451a97d86ae7c83f050056f03ebbe45100104676480a46057361d000000000000000000000000000000000000000000000000000000000000007b8279a9a0a2fc71e4beebd9cd1a3d9a55da213f126641f7ed0bb708a3882fa2b85dd6c30ea0164a5d8a8b9b37950091665194f07b5c4e8f6d1b0d6ef162b0e0a1f9bf10c7a7"],"id":1,"jsonrpc":"2.0"}'
 ```
 
 You'll get a response in Tx Wrapper:
@@ -1012,7 +1011,7 @@ The eos-evm-rpc process provides Ethereum compatible RPC service for clients. It
 Run below commmand to start the eos-evm-node:
 
 ```shell
-./eos-evm-rpc --api-spec=eth,net --http-port=0.0.0.0:8881 --eos-evm-node=127.0.0.1:8080 --chaindata=./chain-data
+./eos-evm-rpc --api-spec=eth,net --http-port=0.0.0.0:8881 --eos-evm-node=127.0.0.1:8181 --chaindata=./chain-data
 ```
 
 The `--chain-data` parameter value must point to the same directory of the chain-data in eos-evm-node.
@@ -1091,7 +1090,7 @@ cd eos-evm/peripherals/proxy/
 
 ```json
   upstream write {
-    server 192.168.56.101:18888;
+    server 192.168.56.101:3335;
   }
   
   upstream read {
@@ -1099,7 +1098,7 @@ cd eos-evm/peripherals/proxy/
   }
 ```
 
-- Change the IP and port of the write session to your Transaction Wrapper server endpoint.
+- Change the IP and port of the write session to your Transaction Wrapper (Miner) server endpoint.
 - Change the IP and port of the read session to your eos-evm-rpc server endpoint
 - Build the docker image for the proxy program:
 
